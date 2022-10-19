@@ -13,7 +13,7 @@ To install the code, please execute this command:
 pip install -e .
 ```
 
-Currently, this repo only works on Linux system due to the CFFI module installation has conflict with Mac and Windows system.
+Currently, this repo only works on Linux system due to the CFFI module installation has conflict with Mac and Windows systems.
 
 ## Example
 
