@@ -13,6 +13,8 @@ To install the code, please execute this command:
 pip install -e .
 ```
 
+Currently, this repo only works on Linux system due to the CFFI module installation has conflict with Mac and Windows system.
+
 ## Example
 
 See [notebook](https://github.com/AdvancedPhotonSource/AIRXD-ML/tree/main/notebook)!
