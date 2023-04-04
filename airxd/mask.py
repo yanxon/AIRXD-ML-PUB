@@ -129,10 +129,10 @@ class MASK:
 
 if __name__ == "__main__":
     import imageio
-    from utilities import parse_imctrl
+    from dataset import parse_imctrl
     numChans = 445
-    Controls = parse_imctrl('../data/Si_ch3_d700-00000.imctrl')
-    Image = imageio.volread('../data/Ni83_ch3_RTto950_d700-00005.tif')
+    Controls = parse_imctrl('../data/Nickel/Si_ch3_d700-00000.imctrl')
+    Image = imageio.volread('../data/Nickel/Ni83_ch3_RTto950_d700-00005.tif')
     mask = MASK(Controls, shape=(2880, 2880))
     result = mask.AutoSpotMask(Image)
     np.save('mask', result)
