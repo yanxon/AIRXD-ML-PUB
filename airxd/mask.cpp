@@ -1,25 +1,15 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
 double Median(std::vector<double> a, int n){
+    sort(a.begin(), a.end());
 
     if (n % 2 == 0){
-      nth_element(a.begin(),
-                  a.begin() + n / 2,
-                  a.end());
-
-      nth_element(a.begin(),
-                  a.begin() + (n - 1) / 2,
-                  a.end());
-    
-      return (double) (a[(n-1)/2] + a[n/2])/2.0;
-    }
-
-    else {
-      nth_element(a.begin(),
-                  a.begin() + n / 2,
-                  a.end());
-
-      return (double) a[n/2];
+        int mid = n / 2;
+        return (a[mid - 1] + a[mid]) / 2.0;
+    } else {
+        return a[n / 2];
     }
 }
 
