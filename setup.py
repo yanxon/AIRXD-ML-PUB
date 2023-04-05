@@ -1,14 +1,21 @@
+import os
+import shutil
 import setuptools
-from os import path
 from distutils.core import setup
 
-root = path.abspath(path.dirname(__file__))
-with open(path.join(root, 'README.md'), encoding="utf-8") as f:
+root = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(root, 'README.md'), encoding="utf-8") as f:
     long_description = f.read()
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 exec(open("airxd/version.py").read())
+
+extension = setuptools.Extension(
+                "_mask",
+                sources=["airxd/mask.cpp"],
+                extra_compile_args=["-std=c++11"],
+                )
 
 setup(
     name='airxd',
@@ -17,15 +24,11 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=["airxd"],
-    package_data={
-        "airxd": ["*.cpp"],
-    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent"
     ],
     install_requires=[
-        'cffi>=1.15.1',
         'numpy==1.21.6',
         'scipy==1.7.3',
         'matplotlib==3.5.2',
@@ -36,8 +39,5 @@ setup(
         'opencv-python==4.6.0.66',
     ],
     python_requires=">=3.7.9",
-    setup_requires=['cffi>=1.15.1'],
-    cffi_modules=[
-        "airxd/builder.py:ffibuilder"
-    ]
+    ext_modules=[extension],
 )

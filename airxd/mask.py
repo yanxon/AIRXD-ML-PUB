@@ -1,12 +1,11 @@
 # Import libraries
+
+import os
+import ctypes
+import shutil
 import numpy as np
 import numpy.ma as ma
-from cffi import FFI
 import scipy.special as sc
-if __name__ == "__main__":
-    from _mask import lib
-else:
-    from ._mask import lib
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -24,37 +23,51 @@ class MASK:
 
     def AutoSpotMask(self, image, esdmul=3.0, numchans=445):
         assert image.shape == self.shape, f"The image shape is different from the declared shape: {self.shape}"
+        m, n = image.shape
+        l = m * n
+
+        # find the shared file
+        root_dir = "../build/"
+        file_extension = '.so'
+        for dirpath, dirnames, filenames in os.walk(root_dir):
+            for filename in filenames:
+                if filename.endswith(file_extension):
+                    p_shared = os.path.join(dirpath, filename)
+        
+        # Import shared file and initiate c data types
+        libmask = ctypes.CDLL(p_shared)
+        libmask.mask.argtypes = [
+                ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                ctypes.c_double, ctypes.c_double,
+                ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_double)
+                ]
 
         # Additional masking
         masks = {'Frames': None}
         frame = masks['Frames']
-        tam = ma.make_mask_none(image.shape)
+        tam = ma.make_mask_none(image.shape).ravel()
+        tam = np.array(tam, dtype=np.int)
 
         LUtth = np.array(self.controls['IOtth'])
         dtth = (LUtth[1]-LUtth[0])/numchans
         TThs = np.linspace(LUtth[0], LUtth[1], numchans, False)
-        band = np.array(image)
+        band = np.array(image).ravel()
+        TA = self.TA.ravel()
 
-        ffi = FFI()
-        m, n = tam.shape
-        p = TThs.shape[0]
-        ptam =  ffi.new('int['+str(m*n)+']', tam.ravel().tolist())
-        pta = ffi.new('double['+str(m*n)+']', self.TA.ravel().tolist())
-        pband = ffi.new('double['+str(m*n)+']', band.ravel().tolist())
-        ptths = ffi.new('double['+str(p)+']', TThs.tolist())
-        output = ffi.new('double['+str(m*n)+']')
-        lib.mask(m, n, p, dtth, esdmul, ptam, pta, pband, ptths, output)
-        mask = np.frombuffer(ffi.buffer(output, m*n*8), dtype=np.float64)
-        mask.shape = (m, n)
+        tam_array = (ctypes.c_int * l)(*tam)
+        ta_array = (ctypes.c_double * l)(*TA)
+        band_array = (ctypes.c_double * l)(*band)
+        tths_array = (ctypes.c_double * len(TThs))(*TThs)
+        omask = np.zeros((l), dtype=np.float64)
+        omask_array = (ctypes.c_double * l)(*omask)
 
-        # Release memory
-        ffi.release(ptam)
-        ffi.release(pta)
-        ffi.release(pband)
-        ffi.release(ptths)
-        ffi.release(output)
+        libmask.mask(m, n, numchans, dtth, esdmul, tam_array, ta_array, band_array, tths_array, omask_array)
 
-        return mask
+        omask = np.array(omask_array, dtype=np.float64)
+
+        return omask.reshape(m, n)
 
     def peneCorr(self, tth, dep, dist):
         return dep*(1.-npcosd(tth))*dist**2/1000.
@@ -128,11 +141,15 @@ class MASK:
         return TA
 
 if __name__ == "__main__":
+    from time import time
     import imageio
     from dataset import parse_imctrl
     numChans = 445
     Controls = parse_imctrl('../data/Nickel/Si_ch3_d700-00000.imctrl')
     Image = imageio.volread('../data/Nickel/Ni83_ch3_RTto950_d700-00005.tif')
     mask = MASK(Controls, shape=(2880, 2880))
+    t0 = time()
     result = mask.AutoSpotMask(Image)
+    print(time()-t0)
+    print(np.sum(result))
     np.save('mask', result)
